@@ -12,19 +12,25 @@ import { getFirestore, collection, addDoc, onSnapshot, query, orderBy, deleteDoc
 // ------------------------------------------------------------------
 // Firebase Configuration
 // ------------------------------------------------------------------
-// TODO: Replace with your own Firebase project config from Console -> Project Settings
+// Priority:
+// 1. Environment Variables (Recommended for Vercel/Production Security)
+// 2. Hardcoded values (For local testing - replace placeholders if needed)
 const firebaseConfig = {
-  apiKey: "YOUR_FIREBASE_API_KEY",
-  authDomain: "your-project-id.firebaseapp.com",
-  projectId: "your-project-id",
-  storageBucket: "your-project-id.firebasestorage.app",
-  messagingSenderId: "YOUR_SENDER_ID",
-  appId: "YOUR_APP_ID",
-  measurementId: "G-MEASUREMENT_ID"
+  apiKey: import.meta.env.VITE_FIREBASE_API_KEY || "YOUR_FIREBASE_API_KEY",
+  authDomain: import.meta.env.VITE_FIREBASE_AUTH_DOMAIN || "your-project-id.firebaseapp.com",
+  projectId: import.meta.env.VITE_FIREBASE_PROJECT_ID || "your-project-id",
+  storageBucket: import.meta.env.VITE_FIREBASE_STORAGE_BUCKET || "your-project-id.firebasestorage.app",
+  messagingSenderId: import.meta.env.VITE_FIREBASE_MESSAGING_SENDER_ID || "YOUR_SENDER_ID",
+  appId: import.meta.env.VITE_FIREBASE_APP_ID || "YOUR_APP_ID",
+  measurementId: import.meta.env.VITE_FIREBASE_MEASUREMENT_ID || "G-MEASUREMENT_ID"
 };
 
-// Initialize Firebase only if config is set
-const isConfigured = firebaseConfig.apiKey !== "YOUR_FIREBASE_API_KEY" && firebaseConfig.apiKey !== "";
+// Initialize Firebase only if config is valid (not default placeholders)
+const isConfigured = 
+  firebaseConfig.apiKey && 
+  firebaseConfig.apiKey !== "YOUR_FIREBASE_API_KEY" && 
+  firebaseConfig.apiKey !== "";
+
 let db: any = null;
 
 if (isConfigured) {
@@ -216,11 +222,23 @@ const App: React.FC = () => {
     <div className="min-h-screen bg-gray-50 text-gray-900 pb-20">
       {/* Configuration Warning Banner */}
       {!isConfigured && (
-        <div className="bg-yellow-50 border-b border-yellow-200 px-4 py-2 text-sm text-yellow-800 flex items-center justify-center gap-2">
-          <AlertTriangle className="w-4 h-4" />
-          <span>
-            <strong>Cloud Sync Inactive:</strong> Firebase configuration is missing. Currently using Local Storage.
-          </span>
+        <div className="bg-yellow-50 border-b border-yellow-200 px-4 py-3 text-sm text-yellow-800">
+          <div className="flex items-start gap-3 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <AlertTriangle className="w-5 h-5 shrink-0 mt-0.5 text-yellow-600" />
+            <div className="flex-1">
+              <h3 className="font-semibold text-yellow-900">Cloud Sync Inactive (Local Mode Only)</h3>
+              <p className="mt-1 text-yellow-800">
+                To enable multi-device sync, you need to configure Firebase.
+              </p>
+              <div className="mt-2 text-xs bg-yellow-100 p-3 rounded border border-yellow-200 font-mono overflow-x-auto text-yellow-900">
+                 <p className="font-bold mb-1">Option 1: Vercel Environment Variables (Secure)</p>
+                 <p>Set: VITE_FIREBASE_API_KEY, VITE_FIREBASE_AUTH_DOMAIN, VITE_FIREBASE_PROJECT_ID ...</p>
+                 
+                 <p className="font-bold mt-2 mb-1">Option 2: Edit Code (Easy for Local)</p>
+                 <p>Open <code>App.tsx</code> and replace "YOUR_FIREBASE_API_KEY" with your actual config.</p>
+              </div>
+            </div>
+          </div>
         </div>
       )}
 
