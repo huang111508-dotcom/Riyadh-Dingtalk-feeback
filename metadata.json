@@ -1,0 +1,5 @@
+{
+  "name": "利雅得 DingTalk Smart Report Parser",
+  "description": "An AI-powered tool to parse unstructured DingTalk work reports into structured Excel tables with one click.",
+  "requestFramePermissions": []
+}
