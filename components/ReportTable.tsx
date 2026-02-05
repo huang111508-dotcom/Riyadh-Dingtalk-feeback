@@ -33,15 +33,15 @@ export const ReportTable: React.FC<ReportTableProps> = ({ reports, onDelete }) =
 
   return (
     <div className="bg-white rounded-2xl shadow-sm border border-gray-200 overflow-hidden animate-in fade-in slide-in-from-bottom-4 duration-500 overflow-x-auto">
-      {/* Increased min-width to accommodate more columns */}
-      <table className="w-full text-sm text-left border-collapse min-w-[1600px]">
+      {/* Removed strict min-w-[1600px] to allow zoom-out to fit content. Added w-full to fill available space. */}
+      <table className="w-full text-sm text-left border-collapse">
         <thead>
           <tr className="bg-gray-100 text-gray-700 font-bold border-b border-gray-300">
-            <th className="px-4 py-4 w-32 border-r border-gray-200 sticky left-0 bg-gray-100 z-10 text-center">
+            <th className="px-3 py-4 w-28 border-r border-gray-200 sticky left-0 bg-gray-100 z-10 text-center">
               日期
             </th>
             {DEPARTMENTS.map(dept => (
-              <th key={dept} className="px-4 py-4 border-r border-gray-200 text-center min-w-[180px]">
+              <th key={dept} className="px-2 py-4 border-r border-gray-200 text-center">
                 {dept}
               </th>
             ))}
@@ -51,7 +51,7 @@ export const ReportTable: React.FC<ReportTableProps> = ({ reports, onDelete }) =
           {groupedData.map(([date, deptData]) => (
             <tr key={date} className="hover:bg-blue-50/30 transition-colors">
               {/* Date Column */}
-              <td className="px-4 py-4 font-mono font-medium text-gray-900 border-r border-gray-100 bg-white sticky left-0 z-10 text-center align-middle shadow-[2px_0_5px_-2px_rgba(0,0,0,0.05)]">
+              <td className="px-3 py-4 font-mono font-medium text-gray-900 border-r border-gray-100 bg-white sticky left-0 z-10 text-center align-middle shadow-[2px_0_5px_-2px_rgba(0,0,0,0.05)]">
                 <div className="flex flex-col items-center justify-center gap-1">
                   <Calendar className="w-4 h-4 text-blue-500" />
                   <span>{date}</span>
@@ -64,7 +64,7 @@ export const ReportTable: React.FC<ReportTableProps> = ({ reports, onDelete }) =
                 const hasItems = items && items.length > 0;
 
                 return (
-                  <td key={`${date}-${dept}`} className="px-3 py-3 border-r border-gray-100 align-top relative group">
+                  <td key={`${date}-${dept}`} className="px-2 py-3 border-r border-gray-100 align-top relative group min-w-[100px]">
                     {!hasItems ? (
                       <div className="flex items-center justify-center h-full min-h-[60px]">
                         <span className="text-red-500 font-extrabold text-3xl opacity-80 select-none">缺</span>
@@ -93,7 +93,7 @@ export const ReportTable: React.FC<ReportTableProps> = ({ reports, onDelete }) =
                                 <Trash2 className="w-3 h-3" />
                               </button>
                             </div>
-                            {/* Improved typography for lists: leading-relaxed and strict whitespace handling */}
+                            {/* Content wraps naturally */}
                             <div className="text-gray-700 text-xs whitespace-pre-wrap break-words leading-6 font-mono">
                               {report.content}
                             </div>

@@ -12,18 +12,19 @@ import { getFirestore, collection, addDoc, onSnapshot, query, orderBy, deleteDoc
 // ------------------------------------------------------------------
 // Firebase Configuration
 // ------------------------------------------------------------------
+// TODO: Replace with your own Firebase project config from Console -> Project Settings
 const firebaseConfig = {
-  apiKey: "AIzaSyBZ55456oRdByR6hfogsgEGympq17Yy0o4",
-  authDomain: "dingtalk-parser.firebaseapp.com",
-  projectId: "dingtalk-parser",
-  storageBucket: "dingtalk-parser.firebasestorage.app",
-  messagingSenderId: "160835767748",
-  appId: "1:160835767748:web:6b8f4790ba362d70a4a891",
-  measurementId: "G-4N1QF327QH"
+  apiKey: "YOUR_FIREBASE_API_KEY",
+  authDomain: "your-project-id.firebaseapp.com",
+  projectId: "your-project-id",
+  storageBucket: "your-project-id.firebasestorage.app",
+  messagingSenderId: "YOUR_SENDER_ID",
+  appId: "YOUR_APP_ID",
+  measurementId: "G-MEASUREMENT_ID"
 };
 
-// Initialize Firebase only if config is set (which it is now)
-const isConfigured = firebaseConfig.apiKey !== "YOUR_API_KEY";
+// Initialize Firebase only if config is set
+const isConfigured = firebaseConfig.apiKey !== "YOUR_FIREBASE_API_KEY" && firebaseConfig.apiKey !== "";
 let db: any = null;
 
 if (isConfigured) {
@@ -230,7 +231,7 @@ const App: React.FC = () => {
             <div className="w-8 h-8 bg-blue-600 rounded-lg flex items-center justify-center text-white shrink-0">
               <MessageSquareText className="w-5 h-5" />
             </div>
-            <h1 className="text-xl font-bold tracking-tight text-gray-900 truncate hidden sm:block">DingTalk Parser</h1>
+            <h1 className="text-xl font-bold tracking-tight text-gray-900 truncate hidden sm:block">Riyadh DingTalk Parser</h1>
             <div className={`hidden md:flex items-center gap-1.5 px-2 py-1 rounded-full text-xs font-medium border ${isConfigured ? 'bg-green-50 text-green-700 border-green-100' : 'bg-gray-100 text-gray-600 border-gray-200'}`}>
                {isConfigured ? <Cloud className="w-3 h-3" /> : <CloudOff className="w-3 h-3" />}
                <span>{isConfigured ? 'Cloud Connected' : 'Local Mode'}</span>
