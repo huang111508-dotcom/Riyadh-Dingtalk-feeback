@@ -14,15 +14,15 @@ import { getFirestore, collection, addDoc, onSnapshot, query, orderBy, deleteDoc
 // ------------------------------------------------------------------
 // Priority:
 // 1. Environment Variables (Recommended for Vercel/Production Security)
-// 2. Hardcoded values (For local testing - replace placeholders if needed)
+// 2. Hardcoded values (For local testing)
 const firebaseConfig = {
-  apiKey: import.meta.env.VITE_FIREBASE_API_KEY || "YOUR_FIREBASE_API_KEY",
-  authDomain: import.meta.env.VITE_FIREBASE_AUTH_DOMAIN || "your-project-id.firebaseapp.com",
-  projectId: import.meta.env.VITE_FIREBASE_PROJECT_ID || "your-project-id",
-  storageBucket: import.meta.env.VITE_FIREBASE_STORAGE_BUCKET || "your-project-id.firebasestorage.app",
-  messagingSenderId: import.meta.env.VITE_FIREBASE_MESSAGING_SENDER_ID || "YOUR_SENDER_ID",
-  appId: import.meta.env.VITE_FIREBASE_APP_ID || "YOUR_APP_ID",
-  measurementId: import.meta.env.VITE_FIREBASE_MEASUREMENT_ID || "G-MEASUREMENT_ID"
+  apiKey: import.meta.env.VITE_FIREBASE_API_KEY || "AIzaSyB60RoAnYkY7GRbApw7cztr4t2mQTLbxj0",
+  authDomain: import.meta.env.VITE_FIREBASE_AUTH_DOMAIN || "riyadh-dingtalk-feeback.firebaseapp.com",
+  projectId: import.meta.env.VITE_FIREBASE_PROJECT_ID || "riyadh-dingtalk-feeback",
+  storageBucket: import.meta.env.VITE_FIREBASE_STORAGE_BUCKET || "riyadh-dingtalk-feeback.firebasestorage.app",
+  messagingSenderId: import.meta.env.VITE_FIREBASE_MESSAGING_SENDER_ID || "568013950248",
+  appId: import.meta.env.VITE_FIREBASE_APP_ID || "1:568013950248:web:83fb340f6589a0e7e0d41d",
+  measurementId: import.meta.env.VITE_FIREBASE_MEASUREMENT_ID || ""
 };
 
 // Initialize Firebase only if config is valid (not default placeholders)
@@ -52,10 +52,13 @@ const getDateDaysAgo = (days: number) => {
   return `${year}-${month}-${day}`;
 };
 
+const LOCAL_STORAGE_KEY = 'dingtalk_reports_data';
+
 const App: React.FC = () => {
   const [reports, setReports] = useState<ReportItem[]>([]);
   const [status, setStatus] = useState<ParsingStatus>(ParsingStatus.IDLE);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
+  const [showBanner, setShowBanner] = useState<boolean>(!isConfigured);
   
   // Date Range Filtering State
   const [startDate, setStartDate] = useState<string>('');
@@ -71,17 +74,18 @@ const App: React.FC = () => {
     }
   }, [startDate, isFullHistory]);
 
-  // 1. Real-time Cloud Sync (Firebase)
+  // ------------------------------------------------------------------
+  // DATA SYNC LOGIC
+  // ------------------------------------------------------------------
+
+  // 1. Cloud Mode: Real-time Cloud Sync (Firebase)
   useEffect(() => {
     if (!isConfigured || !db) return;
 
     let q;
-
     if (isFullHistory) {
-      // Load ALL data
       q = query(collection(db, "reports"), orderBy("date", "desc"));
     } else {
-      // DEFAULT: Load only last 14 days for performance
       const fourteenDaysAgo = getDateDaysAgo(14);
       q = query(
         collection(db, "reports"), 
@@ -98,14 +102,41 @@ const App: React.FC = () => {
       setReports(cloudReports);
     }, (error) => {
       console.error("Sync error:", error);
-      // Only show error if it's likely a permission issue
       if (error.code === 'permission-denied') {
         setErrorMsg("Cloud sync failed: Permission denied. Please check Firestore Rules.");
       }
     });
 
     return () => unsubscribe();
-  }, [isFullHistory]); // Re-run effect when mode changes
+  }, [isFullHistory]);
+
+  // 2. Local Mode: Load from LocalStorage on mount
+  useEffect(() => {
+    if (isConfigured) return; // Skip if using Cloud
+
+    try {
+      const savedData = localStorage.getItem(LOCAL_STORAGE_KEY);
+      if (savedData) {
+        const parsed = JSON.parse(savedData);
+        setReports(parsed);
+      }
+    } catch (e) {
+      console.error("Failed to load local data", e);
+    }
+  }, []);
+
+  // 3. Local Mode: Save to LocalStorage whenever reports change
+  useEffect(() => {
+    if (isConfigured) return; // Skip if using Cloud
+
+    if (reports.length > 0) {
+      localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(reports));
+    } else {
+      // Optional: Don't clear immediately on empty array to prevent accidental wipe on init, 
+      // but here we trust the state.
+    }
+  }, [reports]);
+
 
   const handleAnalyze = async (text: string) => {
     setStatus(ParsingStatus.ANALYZING);
@@ -115,15 +146,13 @@ const App: React.FC = () => {
       
       if (isConfigured && db) {
         // Cloud Mode: Upload one by one
-        // We don't manually setReports here, the onSnapshot listener will do it automatically
         const uploadPromises = newReports.map(item => {
-          // Remove temporary ID, let Firebase generate one
           const { id, ...data } = item;
           return addDoc(collection(db, "reports"), data);
         });
         await Promise.all(uploadPromises);
       } else {
-        // Fallback Local Mode (if config missing)
+        // Local Mode: Update state (Effect will save to LocalStorage)
         setReports(prev => {
           const updated = [...newReports, ...prev];
           return updated.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
@@ -147,7 +176,10 @@ const App: React.FC = () => {
         alert("Failed to delete from cloud. Check permissions.");
       }
     } else {
-      setReports(prev => prev.filter(r => r.id !== id));
+      // Local Mode: Update state (Effect will save to LocalStorage)
+      const newReports = reports.filter(r => r.id !== id);
+      setReports(newReports);
+      localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(newReports)); // Force immediate save
     }
   };
 
@@ -213,6 +245,7 @@ const App: React.FC = () => {
       } else {
         // Local Mode
         setReports([]);
+        localStorage.removeItem(LOCAL_STORAGE_KEY);
         setStatus(ParsingStatus.IDLE);
       }
     }
@@ -221,23 +254,24 @@ const App: React.FC = () => {
   return (
     <div className="min-h-screen bg-gray-50 text-gray-900 pb-20">
       {/* Configuration Warning Banner */}
-      {!isConfigured && (
-        <div className="bg-yellow-50 border-b border-yellow-200 px-4 py-3 text-sm text-yellow-800">
+      {!isConfigured && showBanner && (
+        <div className="bg-yellow-50 border-b border-yellow-200 px-4 py-3 text-sm text-yellow-800 relative">
           <div className="flex items-start gap-3 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
             <AlertTriangle className="w-5 h-5 shrink-0 mt-0.5 text-yellow-600" />
-            <div className="flex-1">
-              <h3 className="font-semibold text-yellow-900">Cloud Sync Inactive (Local Mode Only)</h3>
+            <div className="flex-1 pr-8">
+              <h3 className="font-semibold text-yellow-900">使用本地模式 (Local Mode)</h3>
               <p className="mt-1 text-yellow-800">
-                To enable multi-device sync, you need to configure Firebase.
+                未检测到 Firebase 配置，数据将自动保存在此浏览器的缓存中。
+                <br/>
+                <span className="text-xs opacity-80">注意：更换浏览器或清除缓存会导致数据丢失。</span>
               </p>
-              <div className="mt-2 text-xs bg-yellow-100 p-3 rounded border border-yellow-200 font-mono overflow-x-auto text-yellow-900">
-                 <p className="font-bold mb-1">Option 1: Vercel Environment Variables (Secure)</p>
-                 <p>Set: VITE_FIREBASE_API_KEY, VITE_FIREBASE_AUTH_DOMAIN, VITE_FIREBASE_PROJECT_ID ...</p>
-                 
-                 <p className="font-bold mt-2 mb-1">Option 2: Edit Code (Easy for Local)</p>
-                 <p>Open <code>App.tsx</code> and replace "YOUR_FIREBASE_API_KEY" with your actual config.</p>
-              </div>
             </div>
+            <button 
+              onClick={() => setShowBanner(false)}
+              className="absolute top-2 right-2 p-1.5 text-yellow-700 hover:bg-yellow-100 rounded-lg transition-colors"
+            >
+              <X className="w-4 h-4" />
+            </button>
           </div>
         </div>
       )}
@@ -252,7 +286,7 @@ const App: React.FC = () => {
             <h1 className="text-xl font-bold tracking-tight text-gray-900 truncate hidden sm:block">Riyadh DingTalk Parser</h1>
             <div className={`hidden md:flex items-center gap-1.5 px-2 py-1 rounded-full text-xs font-medium border ${isConfigured ? 'bg-green-50 text-green-700 border-green-100' : 'bg-gray-100 text-gray-600 border-gray-200'}`}>
                {isConfigured ? <Cloud className="w-3 h-3" /> : <CloudOff className="w-3 h-3" />}
-               <span>{isConfigured ? 'Cloud Connected' : 'Local Mode'}</span>
+               <span>{isConfigured ? 'Cloud Connected' : 'Local Storage'}</span>
             </div>
           </div>
 
