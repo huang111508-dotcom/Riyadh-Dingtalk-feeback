@@ -5,16 +5,13 @@ import { Dashboard } from './components/Dashboard';
 import { parseDingTalkLogs } from './services/geminiService';
 import { exportToExcel } from './utils/exportUtils';
 import { ReportItem, ParsingStatus } from './types';
-import { Download, LayoutDashboard, MessageSquareText, RefreshCw, Calendar as CalendarIcon, Filter, Cloud, CloudOff, AlertTriangle, X, History } from 'lucide-react';
+import { Download, LayoutDashboard, MessageSquareText, RefreshCw, Calendar as CalendarIcon, Filter, Cloud, CloudOff, AlertTriangle, X, History, Smartphone, Share } from 'lucide-react';
 import { initializeApp } from "firebase/app";
 import { getFirestore, collection, addDoc, onSnapshot, query, orderBy, deleteDoc, doc, writeBatch, getDocs, where } from "firebase/firestore";
 
 // ------------------------------------------------------------------
 // Firebase Configuration
 // ------------------------------------------------------------------
-// Priority:
-// 1. Environment Variables (Recommended for Vercel/Production Security)
-// 2. Hardcoded values (For local testing)
 const firebaseConfig = {
   apiKey: import.meta.env.VITE_FIREBASE_API_KEY || "AIzaSyB60RoAnYkY7GRbApw7cztr4t2mQTLbxj0",
   authDomain: import.meta.env.VITE_FIREBASE_AUTH_DOMAIN || "riyadh-dingtalk-feeback.firebaseapp.com",
@@ -25,7 +22,6 @@ const firebaseConfig = {
   measurementId: import.meta.env.VITE_FIREBASE_MEASUREMENT_ID || ""
 };
 
-// Initialize Firebase only if config is valid (not default placeholders)
 const isConfigured = 
   firebaseConfig.apiKey && 
   firebaseConfig.apiKey !== "YOUR_FIREBASE_API_KEY" && 
@@ -42,7 +38,6 @@ if (isConfigured) {
   }
 }
 
-// Helper to get date string YYYY-MM-DD for X days ago
 const getDateDaysAgo = (days: number) => {
   const d = new Date();
   d.setDate(d.getDate() - days);
@@ -64,21 +59,55 @@ const App: React.FC = () => {
   const [startDate, setStartDate] = useState<string>('');
   const [endDate, setEndDate] = useState<string>('');
 
-  // Performance Optimization: Only load full history if requested
+  // Performance Optimization
   const [isFullHistory, setIsFullHistory] = useState<boolean>(false);
 
-  // Auto-switch to full history if a start date is selected
+  // PWA Install State
+  const [installPrompt, setInstallPrompt] = useState<any>(null);
+  const [isIOS, setIsIOS] = useState(false);
+  const [showIOSHint, setShowIOSHint] = useState(false);
+  const [isStandalone, setIsStandalone] = useState(false);
+
+  // PWA & iOS Detection
+  useEffect(() => {
+    // Check if already installed/standalone
+    const checkStandalone = window.matchMedia('(display-mode: standalone)').matches || (window.navigator as any).standalone;
+    setIsStandalone(!!checkStandalone);
+
+    // Detect iOS
+    const userAgent = window.navigator.userAgent.toLowerCase();
+    const isIosDevice = /iphone|ipad|ipod/.test(userAgent);
+    setIsIOS(isIosDevice);
+
+    // Capture install prompt (Android/Desktop)
+    const handler = (e: any) => {
+      e.preventDefault();
+      setInstallPrompt(e);
+    };
+    window.addEventListener('beforeinstallprompt', handler);
+    return () => window.removeEventListener('beforeinstallprompt', handler);
+  }, []);
+
+  const handleInstallClick = () => {
+    if (isIOS) {
+      setShowIOSHint(true);
+    } else if (installPrompt) {
+      installPrompt.prompt();
+      installPrompt.userChoice.then((choiceResult: any) => {
+        if (choiceResult.outcome === 'accepted') {
+          setInstallPrompt(null);
+        }
+      });
+    }
+  };
+
   useEffect(() => {
     if (startDate && !isFullHistory) {
       setIsFullHistory(true);
     }
   }, [startDate, isFullHistory]);
 
-  // ------------------------------------------------------------------
-  // DATA SYNC LOGIC
-  // ------------------------------------------------------------------
-
-  // 1. Cloud Mode: Real-time Cloud Sync (Firebase)
+  // Cloud Sync
   useEffect(() => {
     if (!isConfigured || !db) return;
 
@@ -96,7 +125,7 @@ const App: React.FC = () => {
     
     const unsubscribe = onSnapshot(q, (snapshot) => {
       const cloudReports = snapshot.docs.map(doc => ({
-        id: doc.id, // Use Cloud ID
+        id: doc.id,
         ...doc.data()
       })) as ReportItem[];
       setReports(cloudReports);
@@ -110,10 +139,9 @@ const App: React.FC = () => {
     return () => unsubscribe();
   }, [isFullHistory]);
 
-  // 2. Local Mode: Load from LocalStorage on mount
+  // Local Sync
   useEffect(() => {
-    if (isConfigured) return; // Skip if using Cloud
-
+    if (isConfigured) return;
     try {
       const savedData = localStorage.getItem(LOCAL_STORAGE_KEY);
       if (savedData) {
@@ -125,40 +153,30 @@ const App: React.FC = () => {
     }
   }, []);
 
-  // 3. Local Mode: Save to LocalStorage whenever reports change
   useEffect(() => {
-    if (isConfigured) return; // Skip if using Cloud
-
+    if (isConfigured) return;
     if (reports.length > 0) {
       localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(reports));
-    } else {
-      // Optional: Don't clear immediately on empty array to prevent accidental wipe on init, 
-      // but here we trust the state.
     }
   }, [reports]);
-
 
   const handleAnalyze = async (text: string) => {
     setStatus(ParsingStatus.ANALYZING);
     setErrorMsg(null);
     try {
       const newReports = await parseDingTalkLogs(text);
-      
       if (isConfigured && db) {
-        // Cloud Mode: Upload one by one
         const uploadPromises = newReports.map(item => {
           const { id, ...data } = item;
           return addDoc(collection(db, "reports"), data);
         });
         await Promise.all(uploadPromises);
       } else {
-        // Local Mode: Update state (Effect will save to LocalStorage)
         setReports(prev => {
           const updated = [...newReports, ...prev];
           return updated.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
         });
       }
-      
       setStatus(ParsingStatus.SUCCESS);
     } catch (e) {
       console.error(e);
@@ -176,17 +194,14 @@ const App: React.FC = () => {
         alert("Failed to delete from cloud. Check permissions.");
       }
     } else {
-      // Local Mode: Update state (Effect will save to LocalStorage)
       const newReports = reports.filter(r => r.id !== id);
       setReports(newReports);
-      localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(newReports)); // Force immediate save
+      localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(newReports));
     }
   };
 
-  // Compute filtered reports based on Date Range
   const displayedReports = useMemo(() => {
     if (!startDate && !endDate) return reports;
-
     return reports.filter(r => {
       let isValid = true;
       if (startDate && r.date < startDate) isValid = false;
@@ -208,7 +223,6 @@ const App: React.FC = () => {
     } else {
       filename += `_All_Time`;
     }
-    
     exportToExcel(displayedReports, `${filename}.xlsx`);
   };
 
@@ -218,7 +232,6 @@ const App: React.FC = () => {
       : "确定要清空本地所有数据吗？";
 
     if (confirm(confirmMsg)) {
-      // PASSWORD CHECK
       const password = prompt("请输入管理员密码以执行清空操作:");
       if (password !== "admin888") {
         if (password !== null) alert("密码错误，操作已取消。");
@@ -226,9 +239,8 @@ const App: React.FC = () => {
       }
 
       if (isConfigured && db) {
-        // Batch delete for Cloud
         try {
-          setStatus(ParsingStatus.ANALYZING); // Show spinner
+          setStatus(ParsingStatus.ANALYZING);
           const q = query(collection(db, "reports"));
           const snapshot = await getDocs(q);
           const batch = writeBatch(db);
@@ -243,7 +255,6 @@ const App: React.FC = () => {
           setStatus(ParsingStatus.IDLE);
         }
       } else {
-        // Local Mode
         setReports([]);
         localStorage.removeItem(LOCAL_STORAGE_KEY);
         setStatus(ParsingStatus.IDLE);
@@ -253,6 +264,51 @@ const App: React.FC = () => {
 
   return (
     <div className="min-h-screen bg-gray-50 text-gray-900 pb-20">
+      
+      {/* iOS Install Hint Modal */}
+      {showIOSHint && (
+        <div className="fixed inset-0 z-50 bg-black/60 flex items-end sm:items-center justify-center p-4 animate-in fade-in duration-200">
+          <div className="bg-white w-full max-w-sm rounded-2xl p-6 relative shadow-2xl animate-in slide-in-from-bottom-10 duration-300">
+            <button 
+              onClick={() => setShowIOSHint(false)}
+              className="absolute top-4 right-4 text-gray-400 hover:text-gray-600"
+            >
+              <X className="w-6 h-6" />
+            </button>
+            <h3 className="text-lg font-bold text-gray-900 mb-2">安装到 iPhone/iPad</h3>
+            <p className="text-sm text-gray-600 mb-4">
+              iOS 不支持自动安装。请按以下步骤手动添加：
+            </p>
+            <div className="space-y-4 text-sm">
+              <div className="flex items-center gap-3">
+                <div className="w-8 h-8 bg-gray-100 rounded-lg flex items-center justify-center shrink-0">
+                  <Share className="w-4 h-4 text-blue-600" />
+                </div>
+                <span>1. 点击浏览器底部的 <strong>"分享"</strong> 按钮</span>
+              </div>
+              <div className="flex items-center gap-3">
+                <div className="w-8 h-8 bg-gray-100 rounded-lg flex items-center justify-center shrink-0">
+                  <div className="w-4 h-4 border-2 border-gray-400 rounded-sm flex items-center justify-center">
+                    <span className="text-xs font-bold">+</span>
+                  </div>
+                </div>
+                <span>2. 向下滑动并选择 <strong>"添加到主屏幕"</strong></span>
+              </div>
+            </div>
+            <div className="mt-6 text-center">
+              <button 
+                onClick={() => setShowIOSHint(false)}
+                className="text-blue-600 font-medium hover:underline"
+              >
+                我知道了
+              </button>
+            </div>
+            {/* Pointer arrow for Safari bottom bar */}
+            <div className="absolute -bottom-2 left-1/2 -translate-x-1/2 w-4 h-4 bg-white rotate-45 transform sm:hidden"></div>
+          </div>
+        </div>
+      )}
+
       {/* Configuration Warning Banner */}
       {!isConfigured && showBanner && (
         <div className="bg-yellow-50 border-b border-yellow-200 px-4 py-3 text-sm text-yellow-800 relative">
@@ -261,9 +317,7 @@ const App: React.FC = () => {
             <div className="flex-1 pr-8">
               <h3 className="font-semibold text-yellow-900">使用本地模式 (Local Mode)</h3>
               <p className="mt-1 text-yellow-800">
-                未检测到 Firebase 配置，数据将自动保存在此浏览器的缓存中。
-                <br/>
-                <span className="text-xs opacity-80">注意：更换浏览器或清除缓存会导致数据丢失。</span>
+                未检测到 Firebase 配置，数据保存在本地缓存中。
               </p>
             </div>
             <button 
@@ -286,11 +340,23 @@ const App: React.FC = () => {
             <h1 className="text-xl font-bold tracking-tight text-gray-900 truncate hidden sm:block">Riyadh DingTalk Parser</h1>
             <div className={`hidden md:flex items-center gap-1.5 px-2 py-1 rounded-full text-xs font-medium border ${isConfigured ? 'bg-green-50 text-green-700 border-green-100' : 'bg-gray-100 text-gray-600 border-gray-200'}`}>
                {isConfigured ? <Cloud className="w-3 h-3" /> : <CloudOff className="w-3 h-3" />}
-               <span>{isConfigured ? 'Cloud Connected' : 'Local Storage'}</span>
+               <span className="hidden lg:inline">{isConfigured ? 'Cloud Connected' : 'Local'}</span>
             </div>
           </div>
 
           <div className="flex items-center gap-2 sm:gap-4">
+             {/* Install App Button (Only show if not already installed) */}
+             {!isStandalone && (installPrompt || isIOS) && (
+               <button
+                 onClick={handleInstallClick}
+                 className="flex items-center gap-2 bg-blue-50 text-blue-700 px-3 py-1.5 rounded-lg text-sm font-medium hover:bg-blue-100 transition-colors animate-pulse"
+                 title="Install App"
+               >
+                 <Smartphone className="w-4 h-4" />
+                 <span className="hidden sm:inline">Install App</span>
+               </button>
+             )}
+
              {/* Date Range Filter */}
              <div className="flex items-center bg-gray-50 border border-gray-300 rounded-lg px-2 py-1.5 shadow-sm focus-within:ring-2 focus-within:ring-blue-500 focus-within:border-blue-500 transition-all">
                 <div className="relative group flex items-center gap-1">
@@ -299,8 +365,7 @@ const App: React.FC = () => {
                      type="date"
                      value={startDate}
                      onChange={(e) => setStartDate(e.target.value)}
-                     className="w-28 sm:w-auto bg-transparent border-none p-0 text-sm text-gray-700 focus:ring-0 font-medium outline-none"
-                     placeholder="Start"
+                     className="w-24 sm:w-auto bg-transparent border-none p-0 text-sm text-gray-700 focus:ring-0 font-medium outline-none"
                    />
                 </div>
                 <span className="mx-1 text-gray-300">|</span>
@@ -310,8 +375,7 @@ const App: React.FC = () => {
                      type="date"
                      value={endDate}
                      onChange={(e) => setEndDate(e.target.value)}
-                     className="w-28 sm:w-auto bg-transparent border-none p-0 text-sm text-gray-700 focus:ring-0 font-medium outline-none"
-                     placeholder="End"
+                     className="w-24 sm:w-auto bg-transparent border-none p-0 text-sm text-gray-700 focus:ring-0 font-medium outline-none"
                    />
                 </div>
                 
@@ -319,7 +383,6 @@ const App: React.FC = () => {
                   <button
                     onClick={() => { setStartDate(''); setEndDate(''); }}
                     className="ml-1 p-0.5 text-gray-400 hover:text-red-500 rounded-full hover:bg-gray-100 transition-colors"
-                    title="Clear filter"
                   >
                     <X className="w-4 h-4" />
                   </button>
@@ -327,18 +390,18 @@ const App: React.FC = () => {
              </div>
 
              {reports.length > 0 && (
-               <div className="flex items-center gap-2 border-l border-gray-200 pl-2 sm:pl-4 ml-1">
+               <div className="flex items-center gap-1 sm:gap-2 border-l border-gray-200 pl-2 sm:pl-4 ml-1">
                   <button
                     onClick={handleExport}
                     className="p-2 text-gray-600 hover:text-green-600 hover:bg-green-50 rounded-lg transition-colors"
-                    title="Export Current View to Excel"
+                    title="Export to Excel"
                   >
                     <Download className="w-5 h-5" />
                   </button>
                   <button
                     onClick={handleReset}
                     className="p-2 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors hidden sm:block"
-                    title="Clear All History (Danger)"
+                    title="Clear All History"
                   >
                     <Trash2 className="w-5 h-5" />
                   </button>
@@ -349,7 +412,6 @@ const App: React.FC = () => {
       </header>
 
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        {/* Input Section - Hide when actively filtering history to focus on the report view */}
         {!isFiltered && (
           <InputSection 
             onAnalyze={handleAnalyze} 
@@ -375,7 +437,6 @@ const App: React.FC = () => {
                 </h2>
               </div>
               <div className="flex items-center gap-4">
-                {/* Visual Indicator for Data Load Status */}
                 {!isFullHistory && !isFiltered && (
                   <div className="flex items-center gap-1.5 px-3 py-1 bg-blue-50 text-blue-700 text-xs rounded-full border border-blue-100">
                     <History className="w-3.5 h-3.5" />
@@ -383,12 +444,11 @@ const App: React.FC = () => {
                   </div>
                 )}
                 <div className="text-sm text-gray-500 hidden sm:block">
-                  Total Records: {reports.length} {isFiltered && `(Showing ${displayedReports.length})`}
+                  Total: {reports.length}
                 </div>
               </div>
             </div>
 
-            {/* Pass filtered reports to Dashboard so charts update based on date selection */}
             <Dashboard reports={displayedReports} />
 
             <div className="flex items-center justify-between mb-4 mt-8">
@@ -399,7 +459,6 @@ const App: React.FC = () => {
                     : 'Historical Records'}
                </h2>
                
-               {/* Manual Load All Button (optional but helpful if user just wants to scroll) */}
                {!isFullHistory && !isFiltered && (
                  <button 
                    onClick={() => setIsFullHistory(true)}
@@ -425,7 +484,6 @@ const App: React.FC = () => {
   );
 };
 
-// Quick helper for trash icon in header
 function Trash2(props: any) {
   return (
     <svg
