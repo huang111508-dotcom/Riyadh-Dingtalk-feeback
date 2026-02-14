@@ -7,7 +7,7 @@ interface ReportTableProps {
   onDelete: (id: string) => void;
 }
 
-// Updated department order as requested: “蔬果”、“水产”、“肉品冻品”、“熟食”、“烘焙”、“食百”、“后勤”、“仓库”
+// Updated department order
 const DEPARTMENTS = ['蔬果', '水产', '肉品冻品', '熟食', '烘焙', '食百', '后勤', '仓库'] as const;
 
 export const ReportTable: React.FC<ReportTableProps> = ({ reports, onDelete }) => {
@@ -89,13 +89,15 @@ export const ReportTable: React.FC<ReportTableProps> = ({ reports, onDelete }) =
                             <div 
                               key={report.id} 
                               onClick={() => setSelectedReport(report)}
-                              className="relative bg-gray-50 rounded-lg p-3 border border-gray-200 hover:border-blue-400 hover:shadow-md cursor-pointer transition-all group/card active:scale-95"
+                              // Simplified styling: Removed shadow-md, scale effects, and heavy borders to keep "original" look
+                              // Retained cursor-pointer and added a very subtle active background for touch feedback
+                              className="relative bg-gray-50 rounded-lg p-3 border border-gray-200 cursor-pointer active:bg-blue-50 transition-colors group/card"
                             >
                               <div className="font-bold text-xs text-blue-700 mb-2 flex justify-between items-center border-b border-gray-200 pb-1.5">
                                 <span className="truncate max-w-[80px]">{report.employeeName}</span>
                                 <div className="flex items-center gap-1">
-                                   {/* View Icon (Visible on hover or always on mobile if we could detect, but hover works for desktop) */}
-                                   <Maximize2 className="w-3 h-3 text-blue-400 opacity-0 group-hover/card:opacity-100 transition-opacity" />
+                                   {/* Maximize Icon - Subtle hint */}
+                                   <Maximize2 className="w-3 h-3 text-gray-400 opacity-0 group-hover/card:opacity-100 transition-opacity" />
                                    
                                    <button
                                     onClick={(e) => {
@@ -116,7 +118,6 @@ export const ReportTable: React.FC<ReportTableProps> = ({ reports, onDelete }) =
                                   </button>
                                 </div>
                               </div>
-                              {/* Content preview (truncated via line-clamp-3 in CSS usually, but here just max-h) */}
                               <div className="text-gray-700 text-xs whitespace-pre-wrap break-words leading-5 font-mono line-clamp-4 overflow-hidden max-h-[5rem]">
                                 {report.content}
                               </div>
@@ -138,15 +139,19 @@ export const ReportTable: React.FC<ReportTableProps> = ({ reports, onDelete }) =
       {/* Full Screen Details Modal */}
       {selectedReport && (
         <div 
-          className="fixed inset-0 z-[100] bg-black/60 backdrop-blur-sm flex items-center justify-center p-4 animate-in fade-in duration-200"
+          className="fixed inset-0 z-[100] bg-black/60 backdrop-blur-sm flex items-end sm:items-center justify-center sm:p-4 animate-in fade-in duration-200"
           onClick={() => setSelectedReport(null)}
         >
+          {/* Modal Container: 
+              - Mobile: w-full h-full, no rounding, slide up from bottom
+              - Desktop: rounded, max width, centered
+          */}
           <div 
-            className="bg-white w-full max-w-lg max-h-[90vh] rounded-2xl shadow-2xl overflow-hidden flex flex-col animate-in zoom-in-95 duration-200"
+            className="bg-white w-full h-full sm:h-auto sm:max-w-lg sm:max-h-[90vh] sm:rounded-2xl shadow-2xl overflow-hidden flex flex-col animate-in slide-in-from-bottom-10 sm:zoom-in-95 duration-200"
             onClick={(e) => e.stopPropagation()}
           >
             {/* Modal Header */}
-            <div className="px-6 py-4 bg-gray-50 border-b border-gray-100 flex items-center justify-between shrink-0">
+            <div className="px-6 py-4 bg-gray-50 border-b border-gray-100 flex items-center justify-between shrink-0 safe-area-top">
               <div className="flex flex-col">
                 <h3 className="text-lg font-bold text-gray-900 flex items-center gap-2">
                   <User className="w-5 h-5 text-blue-600" />
@@ -172,26 +177,27 @@ export const ReportTable: React.FC<ReportTableProps> = ({ reports, onDelete }) =
             </div>
 
             {/* Modal Content - Scrollable */}
-            <div className="p-6 overflow-y-auto overscroll-contain">
+            <div className="p-6 overflow-y-auto overscroll-contain flex-1">
               <div className="prose prose-sm max-w-none">
                 <div className="flex items-start gap-3 mb-2">
                   <AlignLeft className="w-5 h-5 text-gray-400 mt-0.5 shrink-0" />
                   <h4 className="font-medium text-gray-900 m-0">汇报内容</h4>
                 </div>
-                <div className="bg-gray-50 p-4 rounded-xl border border-gray-100 text-gray-800 text-base leading-relaxed whitespace-pre-wrap font-mono">
+                {/* Larger text size on mobile for readability */}
+                <div className="bg-gray-50 p-4 rounded-xl border border-gray-100 text-gray-800 text-base sm:text-base leading-relaxed whitespace-pre-wrap font-mono">
                   {selectedReport.content}
                 </div>
               </div>
 
-              {/* Action Buttons in Modal */}
-              <div className="mt-8 flex justify-end gap-3 pt-4 border-t border-gray-100">
+              {/* Action Buttons in Modal - Pushed to bottom with safe area */}
+              <div className="mt-8 flex justify-end gap-3 pt-4 border-t border-gray-100 safe-area-bottom pb-4 sm:pb-0">
                 <button
                   onClick={() => {
                     if (confirm(`确认删除 ${selectedReport.employeeName} 的这条汇报吗?`)) {
                       const password = prompt("请输入管理员密码进行删除:");
                       if (password === "admin888") {
                         onDelete(selectedReport.id);
-                        setSelectedReport(null); // Close modal after delete
+                        setSelectedReport(null); 
                       } else if (password !== null) {
                         alert("密码错误，无法删除");
                       }
@@ -204,9 +210,9 @@ export const ReportTable: React.FC<ReportTableProps> = ({ reports, onDelete }) =
                 </button>
                 <button
                   onClick={() => setSelectedReport(null)}
-                  className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-sm font-medium transition-colors shadow-lg shadow-blue-500/20"
+                  className="px-6 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-sm font-medium transition-colors shadow-lg shadow-blue-500/20"
                 >
-                  关闭 (Close)
+                  关闭
                 </button>
               </div>
             </div>
