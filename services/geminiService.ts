@@ -1,10 +1,19 @@
 import { GoogleGenAI, Type } from "@google/genai";
 import { ReportItem } from "../types";
 
-const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
-
 export const parseDingTalkLogs = async (rawText: string): Promise<ReportItem[]> => {
   try {
+    // Initialize AI client lazily to avoid top-level runtime errors if env vars aren't ready
+    // We check for process to avoid ReferenceError in non-shimmed environments, 
+    // though Vite usually handles this via define.
+    const apiKey = typeof process !== 'undefined' ? process.env.API_KEY : '';
+    
+    if (!apiKey) {
+      throw new Error("API Key is missing. Please check your configuration.");
+    }
+
+    const ai = new GoogleGenAI({ apiKey });
+
     const currentYear = new Date().getFullYear();
     const prompt = `
       You are a strict Data Parser for retail work reports.

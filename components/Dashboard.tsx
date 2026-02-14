@@ -14,12 +14,10 @@ export const Dashboard: React.FC<DashboardProps> = ({ reports }) => {
     const counts: Record<string, number> = {};
     
     reports.forEach(r => {
-      // CLEAN DATA: Trim whitespace to prevent "Food " and "Food" being separate
       const dept = r.department ? r.department.trim() : 'Unknown';
       counts[dept] = (counts[dept] || 0) + 1;
     });
 
-    // Convert to array and sort by value (descending)
     return Object.keys(counts)
       .map(key => ({ name: key, value: counts[key] }))
       .sort((a, b) => b.value - a.value);
@@ -27,20 +25,11 @@ export const Dashboard: React.FC<DashboardProps> = ({ reports }) => {
 
   // 2. Employee Workload Processing
   const workloadData = useMemo(() => {
-    // Map to store { groupKey: { count: number, displayName: string } }
     const groups: Record<string, { count: number; displayName: string }> = {};
     
     reports.forEach(r => {
       const originalName = r.employeeName ? r.employeeName.trim() : 'Unknown';
-      
-      // IMPROVED STRATEGY:
-      // Extract ALL Chinese characters to form the unique key.
-      // This handles "李静" (pure Chinese), "李 静" (spaces), and "李慧敏Huimin Li" (mixed) uniformly.
       const chinesePart = originalName.replace(/[^\u4e00-\u9fa5]/g, '');
-      
-      // If Chinese characters exist, use them as the Key (e.g. "李静"). 
-      // This ensures "李静" and "李静 English" are grouped together.
-      // If no Chinese (e.g. "Tom"), use the full name.
       const key = chinesePart.length > 0 ? chinesePart : originalName;
 
       if (!groups[key]) {
@@ -49,18 +38,14 @@ export const Dashboard: React.FC<DashboardProps> = ({ reports }) => {
 
       groups[key].count += 1;
 
-      // Update Display Name: Always pick the longest version encountered for this key.
-      // 1. If we have "李静" (len 2) and "李静Huimin" (len 8), we keep "李静Huimin".
-      // 2. If we ONLY have "李静", it keeps "李静".
       if (originalName.length > groups[key].displayName.length) {
         groups[key].displayName = originalName;
       }
     });
 
-    // Convert to array and sort by number of tasks (High to Low)
     return Object.values(groups)
       .map(group => ({ name: group.displayName, count: group.count }))
-      .sort((a, b) => b.count - a.count); // Descending sort
+      .sort((a, b) => b.count - a.count);
   }, [reports]);
 
   if (reports.length === 0) return null;
@@ -75,7 +60,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ reports }) => {
         <p className="text-xs text-gray-400 mb-4">
           统计所选时间段内的实际提交总数
         </p>
-        <div className="h-80 w-full flex-1">
+        <div className="w-full h-[300px]">
           <ResponsiveContainer width="100%" height="100%">
             <PieChart>
               <Pie
@@ -112,23 +97,19 @@ export const Dashboard: React.FC<DashboardProps> = ({ reports }) => {
           按提交次数从高到低排列
         </p>
         
-        {/* Calculate dynamic height based on number of employees to ensure bars aren't squashed */}
-        <div style={{ height: Math.max(320, workloadData.length * 40) }} className="w-full">
+        <div className="w-full" style={{ height: Math.max(300, workloadData.length * 40) }}>
           <ResponsiveContainer width="100%" height="100%">
             <BarChart
-              layout="vertical" // KEY FIX: Horizontal bars (Vertical layout)
+              layout="vertical"
               data={workloadData}
               margin={{ top: 5, right: 30, left: 10, bottom: 5 }}
             >
               <CartesianGrid strokeDasharray="3 3" horizontal={false} stroke="#f3f4f6" />
-              <XAxis 
-                type="number" 
-                hide={true} // Hide numbers at bottom, we show them on bars
-              />
+              <XAxis type="number" hide={true} />
               <YAxis 
                 dataKey="name" 
                 type="category" 
-                width={140} // Increased width to 140px to safely show "Chinese + English"
+                width={140}
                 tick={{ fontSize: 12, fill: '#374151' }}
                 axisLine={false}
                 tickLine={false}
@@ -142,9 +123,8 @@ export const Dashboard: React.FC<DashboardProps> = ({ reports }) => {
                 dataKey="count" 
                 fill="#6366f1" 
                 radius={[0, 4, 4, 0]} 
-                barSize={20} // Thinner bars looking more elegant
+                barSize={20}
               >
-                {/* Show the actual number at the end of the bar */}
                 <LabelList dataKey="count" position="right" fill="#6B7280" fontSize={12} />
               </Bar>
             </BarChart>
