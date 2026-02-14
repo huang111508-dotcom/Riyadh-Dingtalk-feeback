@@ -5,7 +5,7 @@ import { Dashboard } from './components/Dashboard';
 import { parseDingTalkLogs } from './services/geminiService';
 import { exportToExcel } from './utils/exportUtils';
 import { ReportItem, ParsingStatus } from './types';
-import { Download, LayoutDashboard, MessageSquareText, RefreshCw, Calendar as CalendarIcon, Filter, Cloud, CloudOff, AlertTriangle, X, History, Smartphone, Share } from 'lucide-react';
+import { Download, LayoutDashboard, MessageSquareText, RefreshCw, Calendar as CalendarIcon, Filter, Cloud, CloudOff, AlertTriangle, X, History, Smartphone, Share, Trash2 } from 'lucide-react';
 import { initializeApp } from "firebase/app";
 import { getFirestore, collection, addDoc, onSnapshot, query, orderBy, deleteDoc, doc, writeBatch, getDocs, where } from "firebase/firestore";
 
@@ -303,7 +303,6 @@ const App: React.FC = () => {
                 我知道了
               </button>
             </div>
-            {/* Pointer arrow for Safari bottom bar */}
             <div className="absolute -bottom-2 left-1/2 -translate-x-1/2 w-4 h-4 bg-white rotate-45 transform sm:hidden"></div>
           </div>
         </div>
@@ -331,36 +330,35 @@ const App: React.FC = () => {
       )}
 
       {/* Header */}
-      <header className="bg-white border-b border-gray-200 sticky top-0 z-20">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between gap-4">
+      <header className="bg-white border-b border-gray-200 sticky top-0 z-20 safe-area-top">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between gap-2">
+          {/* Logo Section - Hidden title on mobile to save space */}
           <div className="flex items-center gap-3 min-w-0">
-            <div className="w-8 h-8 bg-blue-600 rounded-lg flex items-center justify-center text-white shrink-0">
+            <div className="w-8 h-8 bg-blue-600 rounded-lg flex items-center justify-center text-white shrink-0 shadow-sm shadow-blue-500/30">
               <MessageSquareText className="w-5 h-5" />
             </div>
-            <h1 className="text-xl font-bold tracking-tight text-gray-900 truncate hidden sm:block">Riyadh DingTalk Parser</h1>
-            <div className={`hidden md:flex items-center gap-1.5 px-2 py-1 rounded-full text-xs font-medium border ${isConfigured ? 'bg-green-50 text-green-700 border-green-100' : 'bg-gray-100 text-gray-600 border-gray-200'}`}>
+            <h1 className="text-xl font-bold tracking-tight text-gray-900 truncate hidden md:block">日报助手</h1>
+            <div className={`hidden lg:flex items-center gap-1.5 px-2 py-1 rounded-full text-xs font-medium border ${isConfigured ? 'bg-green-50 text-green-700 border-green-100' : 'bg-gray-100 text-gray-600 border-gray-200'}`}>
                {isConfigured ? <Cloud className="w-3 h-3" /> : <CloudOff className="w-3 h-3" />}
-               <span className="hidden lg:inline">{isConfigured ? 'Cloud Connected' : 'Local'}</span>
+               <span>{isConfigured ? 'Sync' : 'Local'}</span>
             </div>
           </div>
 
-          <div className="flex items-center gap-2 sm:gap-4">
-             {/* Install App Button (Only show if not already installed) */}
+          <div className="flex items-center gap-2 flex-1 justify-end">
+             {/* Install App Button */}
              {!isStandalone && (installPrompt || isIOS) && (
                <button
                  onClick={handleInstallClick}
-                 className="flex items-center gap-2 bg-blue-50 text-blue-700 px-3 py-1.5 rounded-lg text-sm font-medium hover:bg-blue-100 transition-colors animate-pulse"
-                 title="Install App"
+                 className="flex items-center gap-2 bg-blue-50 text-blue-700 px-2 py-1.5 sm:px-3 rounded-lg text-sm font-medium hover:bg-blue-100 transition-colors animate-pulse whitespace-nowrap"
                >
                  <Smartphone className="w-4 h-4" />
-                 <span className="hidden sm:inline">Install App</span>
+                 <span className="hidden sm:inline">安装 App</span>
                </button>
              )}
 
-             {/* Date Range Filter */}
+             {/* Date Range Filter - Compact for Mobile */}
              <div className="flex items-center bg-gray-50 border border-gray-300 rounded-lg px-2 py-1.5 shadow-sm focus-within:ring-2 focus-within:ring-blue-500 focus-within:border-blue-500 transition-all">
                 <div className="relative group flex items-center gap-1">
-                   <span className="text-xs text-gray-400 font-medium hidden sm:block">From</span>
                    <input 
                      type="date"
                      value={startDate}
@@ -370,7 +368,6 @@ const App: React.FC = () => {
                 </div>
                 <span className="mx-1 text-gray-300">|</span>
                 <div className="relative group flex items-center gap-1">
-                   <span className="text-xs text-gray-400 font-medium hidden sm:block">To</span>
                    <input 
                      type="date"
                      value={endDate}
@@ -394,14 +391,14 @@ const App: React.FC = () => {
                   <button
                     onClick={handleExport}
                     className="p-2 text-gray-600 hover:text-green-600 hover:bg-green-50 rounded-lg transition-colors"
-                    title="Export to Excel"
+                    title="Export Excel"
                   >
                     <Download className="w-5 h-5" />
                   </button>
                   <button
                     onClick={handleReset}
                     className="p-2 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors hidden sm:block"
-                    title="Clear All History"
+                    title="Clear All"
                   >
                     <Trash2 className="w-5 h-5" />
                   </button>
@@ -411,7 +408,7 @@ const App: React.FC = () => {
         </div>
       </header>
 
-      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-8">
         {!isFiltered && (
           <InputSection 
             onAnalyze={handleAnalyze} 
@@ -420,8 +417,8 @@ const App: React.FC = () => {
         )}
 
         {errorMsg && (
-          <div className="mb-6 p-4 bg-red-50 border border-red-200 rounded-xl text-red-600 flex items-center gap-2">
-            <span className="font-semibold">Error:</span> {errorMsg}
+          <div className="mb-6 p-4 bg-red-50 border border-red-200 rounded-xl text-red-600 flex items-center gap-2 text-sm">
+            <span className="font-semibold">错误:</span> {errorMsg}
           </div>
         )}
 
@@ -431,20 +428,18 @@ const App: React.FC = () => {
               <div className="flex items-center gap-2">
                 <LayoutDashboard className="w-5 h-5 text-gray-500" />
                 <h2 className="text-lg font-semibold text-gray-800">
-                  {isFiltered 
-                    ? `Dashboard (${startDate || 'Start'} - ${endDate || 'Now'})` 
-                    : 'All Time Overview'}
+                  {isFiltered ? '筛选结果' : '数据概览'}
                 </h2>
               </div>
               <div className="flex items-center gap-4">
                 {!isFullHistory && !isFiltered && (
                   <div className="flex items-center gap-1.5 px-3 py-1 bg-blue-50 text-blue-700 text-xs rounded-full border border-blue-100">
                     <History className="w-3.5 h-3.5" />
-                    <span>Showing last 14 days</span>
+                    <span>近14天数据</span>
                   </div>
                 )}
                 <div className="text-sm text-gray-500 hidden sm:block">
-                  Total: {reports.length}
+                  共 {reports.length} 条
                 </div>
               </div>
             </div>
@@ -454,9 +449,7 @@ const App: React.FC = () => {
             <div className="flex items-center justify-between mb-4 mt-8">
                <h2 className="text-lg font-semibold text-gray-800 flex items-center gap-2">
                  <CalendarIcon className="w-5 h-5 text-gray-500" />
-                 {isFiltered 
-                    ? `Records (${startDate || '...'} to ${endDate || '...'})` 
-                    : 'Historical Records'}
+                 {isFiltered ? '详细记录' : '历史记录'}
                </h2>
                
                {!isFullHistory && !isFiltered && (
@@ -464,15 +457,15 @@ const App: React.FC = () => {
                    onClick={() => setIsFullHistory(true)}
                    className="text-sm text-blue-600 hover:text-blue-800 font-medium hover:underline"
                  >
-                   Load older history...
+                   加载更多历史...
                  </button>
                )}
             </div>
             
             {displayedReports.length === 0 ? (
               <div className="text-center py-12 bg-white rounded-2xl border border-gray-200 border-dashed">
-                 <p className="text-gray-500">No records found for this date range.</p>
-                 <button onClick={() => {setStartDate(''); setEndDate('');}} className="mt-2 text-blue-600 hover:underline">Clear Filter</button>
+                 <p className="text-gray-500">当前筛选日期内无记录。</p>
+                 <button onClick={() => {setStartDate(''); setEndDate('');}} className="mt-2 text-blue-600 hover:underline text-sm">清除筛选</button>
               </div>
             ) : (
               <ReportTable reports={displayedReports} onDelete={handleDelete} />
@@ -483,28 +476,5 @@ const App: React.FC = () => {
     </div>
   );
 };
-
-function Trash2(props: any) {
-  return (
-    <svg
-      {...props}
-      xmlns="http://www.w3.org/2000/svg"
-      width="24"
-      height="24"
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="2"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-    >
-      <path d="M3 6h18" />
-      <path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6" />
-      <path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2" />
-      <line x1="10" x2="10" y1="11" y2="17" />
-      <line x1="14" x2="14" y1="11" y2="17" />
-    </svg>
-  )
-}
 
 export default App;

@@ -40,18 +40,19 @@ export const InputSection: React.FC<InputSectionProps> = ({ onAnalyze, isAnalyzi
 2. 整理B区货架，腾出空位`;
 
   return (
-    <div className="bg-white rounded-2xl shadow-sm border border-gray-200 p-6 mb-6">
+    <div className="bg-white rounded-2xl shadow-sm border border-gray-200 p-4 sm:p-6 mb-6">
       <div className="flex items-center justify-between mb-4">
         <h2 className="text-lg font-semibold text-gray-800 flex items-center gap-2">
           <FileText className="w-5 h-5 text-blue-600" />
-          工作汇报输入 (Data Input)
+          工作汇报输入
         </h2>
         <button
           onClick={handlePaste}
-          className="text-sm text-blue-600 hover:text-blue-700 font-medium flex items-center gap-1 transition-colors"
+          className="text-sm text-blue-600 hover:text-blue-700 font-medium flex items-center gap-1 transition-colors px-2 py-1 bg-blue-50 rounded-md"
         >
           <Clipboard className="w-4 h-4" />
-          粘贴内容 (Paste)
+          <span className="hidden sm:inline">粘贴内容 (Paste)</span>
+          <span className="sm:hidden">粘贴</span>
         </button>
       </div>
       
@@ -60,9 +61,10 @@ export const InputSection: React.FC<InputSectionProps> = ({ onAnalyze, isAnalyzi
           value={text}
           onChange={(e) => setText(e.target.value)}
           placeholder={placeholder}
-          className="w-full h-48 p-4 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition-all resize-none text-sm font-mono text-gray-700"
+          // text-base prevents iOS zoom on focus. sm:text-sm reverts to smaller font on desktop.
+          className="w-full h-48 p-4 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition-all resize-none text-base sm:text-sm font-mono text-gray-700 leading-relaxed"
         />
-        <div className="absolute bottom-4 right-4">
+        <div className="absolute bottom-4 right-4 z-10">
           <button
             onClick={handleAnalyzeClick}
             disabled={isAnalyzing || !text.trim()}
@@ -81,14 +83,14 @@ export const InputSection: React.FC<InputSectionProps> = ({ onAnalyze, isAnalyzi
             ) : (
               <>
                 <Sparkles className="w-4 h-4" />
-                智能汇总 (Generate)
+                智能汇总
               </>
             )}
           </button>
         </div>
       </div>
-      <p className="mt-3 text-xs text-gray-500">
-        提示：支持多选聊天记录合并转发，直接复制粘贴到这里。AI 将自动按部门归类。
+      <p className="mt-3 text-xs text-gray-500 leading-normal">
+        提示：支持直接粘贴微信/钉钉的多条聊天记录，AI 自动整理。
       </p>
     </div>
   );

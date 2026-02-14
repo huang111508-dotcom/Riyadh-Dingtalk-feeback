@@ -25,6 +25,22 @@
       body { font-family: 'Inter', sans-serif; background-color: #f3f4f6; }
       /* Disable pull-to-refresh on mobile to feel more like an app */
       body { overscroll-behavior-y: none; }
+
+      /* Safe Area Variables for iPhone X+ */
+      :root {
+        --sat: env(safe-area-inset-top);
+        --sab: env(safe-area-inset-bottom);
+        --sal: env(safe-area-inset-left);
+        --sar: env(safe-area-inset-right);
+      }
+
+      .safe-area-bottom {
+        padding-bottom: calc(1rem + var(--sab));
+      }
+      
+      .safe-area-top {
+        padding-top: var(--sat);
+      }
     </style>
   <script type="importmap">
 {

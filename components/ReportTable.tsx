@@ -1,22 +1,23 @@
 import React, { useMemo, useState, useEffect } from 'react';
 import { ReportItem } from '../types';
-import { Trash2, Calendar, X, User, MapPin, AlignLeft, Maximize2 } from 'lucide-react';
+import { Trash2, Calendar, X, User, MapPin, AlignLeft, Maximize2, Copy, Check } from 'lucide-react';
 
 interface ReportTableProps {
   reports: ReportItem[];
   onDelete: (id: string) => void;
 }
 
-// Updated department order
 const DEPARTMENTS = ['蔬果', '水产', '肉品冻品', '熟食', '烘焙', '食百', '后勤', '仓库'] as const;
 
 export const ReportTable: React.FC<ReportTableProps> = ({ reports, onDelete }) => {
   const [selectedReport, setSelectedReport] = useState<ReportItem | null>(null);
+  const [copied, setCopied] = useState(false);
 
   // Lock body scroll when modal is open
   useEffect(() => {
     if (selectedReport) {
       document.body.style.overflow = 'hidden';
+      setCopied(false);
     } else {
       document.body.style.overflow = 'unset';
     }
@@ -24,6 +25,17 @@ export const ReportTable: React.FC<ReportTableProps> = ({ reports, onDelete }) =
       document.body.style.overflow = 'unset';
     };
   }, [selectedReport]);
+
+  const handleCopy = async () => {
+    if (!selectedReport) return;
+    try {
+      await navigator.clipboard.writeText(selectedReport.content);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    } catch (err) {
+      console.error('Failed to copy', err);
+    }
+  };
 
   if (reports.length === 0) return null;
 
@@ -47,7 +59,10 @@ export const ReportTable: React.FC<ReportTableProps> = ({ reports, onDelete }) =
 
   return (
     <>
-      <div className="bg-white rounded-2xl shadow-sm border border-gray-200 overflow-hidden animate-in fade-in slide-in-from-bottom-4 duration-500 overflow-x-auto">
+      <div className="bg-white rounded-2xl shadow-sm border border-gray-200 overflow-hidden animate-in fade-in slide-in-from-bottom-4 duration-500 overflow-x-auto relative">
+        {/* Scroll hint gradient for right side */}
+        <div className="absolute top-0 right-0 bottom-0 w-4 bg-gradient-to-l from-black/5 to-transparent pointer-events-none z-20 sm:hidden"></div>
+        
         <table className="w-full text-sm text-left border-collapse">
           <thead>
             <tr className="bg-gray-100 text-gray-700 font-bold border-b border-gray-300">
@@ -91,18 +106,13 @@ export const ReportTable: React.FC<ReportTableProps> = ({ reports, onDelete }) =
                               role="button"
                               tabIndex={0}
                               onClick={() => setSelectedReport(report)}
-                              onKeyDown={(e) => {
-                                if (e.key === 'Enter' || e.key === ' ') {
-                                  setSelectedReport(report);
-                                }
-                              }}
-                              className="relative bg-gray-50 rounded-lg p-3 border border-gray-200 cursor-pointer active:bg-blue-50 transition-colors group/card hover:border-blue-300 hover:shadow-sm"
+                              className="relative bg-gray-50 rounded-lg p-3 border border-gray-200 cursor-pointer active:bg-blue-50 transition-colors group/card hover:border-blue-300 hover:shadow-sm select-none"
                             >
                               <div className="font-bold text-xs text-blue-700 mb-2 flex justify-between items-center border-b border-gray-200 pb-1.5">
                                 <span className="truncate max-w-[80px]">{report.employeeName}</span>
                                 <div className="flex items-center gap-1">
                                    {/* Hint icon for expand */}
-                                   <Maximize2 className="w-3 h-3 text-gray-400 opacity-50 group-hover/card:opacity-100" />
+                                   <Maximize2 className="w-3 h-3 text-gray-400 opacity-60 group-hover/card:opacity-100" />
                                    
                                    <button
                                     onClick={(e) => {
@@ -126,7 +136,6 @@ export const ReportTable: React.FC<ReportTableProps> = ({ reports, onDelete }) =
                               <div className="text-gray-700 text-xs whitespace-pre-wrap break-words leading-5 font-mono line-clamp-4 overflow-hidden max-h-[5rem]">
                                 {report.content}
                               </div>
-                              {/* Fade out effect */}
                               <div className="absolute bottom-1 left-0 w-full h-4 bg-gradient-to-t from-gray-50 to-transparent pointer-events-none"></div>
                             </div>
                           ))}
@@ -147,13 +156,16 @@ export const ReportTable: React.FC<ReportTableProps> = ({ reports, onDelete }) =
           className="fixed inset-0 z-[100] bg-black/60 backdrop-blur-sm flex items-end sm:items-center justify-center sm:p-4 animate-in fade-in duration-200"
           onClick={() => setSelectedReport(null)}
         >
-          {/* Modal Container: Fullscreen on Mobile, Centered Card on Desktop */}
+          {/* Modal Container */}
           <div 
-            className="bg-white w-full h-[90vh] sm:h-auto sm:max-w-2xl sm:max-h-[85vh] rounded-t-2xl sm:rounded-2xl shadow-2xl overflow-hidden flex flex-col animate-in slide-in-from-bottom-10 sm:zoom-in-95 duration-300"
+            className="bg-white w-full h-[85vh] sm:h-auto sm:max-w-2xl sm:max-h-[85vh] rounded-t-3xl sm:rounded-2xl shadow-2xl overflow-hidden flex flex-col animate-in slide-in-from-bottom-10 sm:zoom-in-95 duration-300 relative"
             onClick={(e) => e.stopPropagation()}
           >
+             {/* Drag Handle for Mobile */}
+             <div className="w-12 h-1.5 bg-gray-300 rounded-full mx-auto mt-3 mb-1 sm:hidden shrink-0" />
+
             {/* Modal Header */}
-            <div className="px-6 py-4 bg-gray-50 border-b border-gray-100 flex items-center justify-between shrink-0">
+            <div className="px-6 py-4 bg-white border-b border-gray-100 flex items-center justify-between shrink-0">
               <div className="flex flex-col">
                 <h3 className="text-lg font-bold text-gray-900 flex items-center gap-2">
                   <User className="w-5 h-5 text-blue-600" />
@@ -172,7 +184,7 @@ export const ReportTable: React.FC<ReportTableProps> = ({ reports, onDelete }) =
               </div>
               <button 
                 onClick={() => setSelectedReport(null)}
-                className="p-2 bg-gray-200 hover:bg-gray-300 rounded-full text-gray-600 transition-colors"
+                className="p-2 bg-gray-100 hover:bg-gray-200 rounded-full text-gray-600 transition-colors"
                 aria-label="Close"
               >
                 <X className="w-6 h-6" />
@@ -181,11 +193,21 @@ export const ReportTable: React.FC<ReportTableProps> = ({ reports, onDelete }) =
 
             {/* Modal Content - Scrollable */}
             <div className="p-6 overflow-y-auto overscroll-contain flex-1 bg-white">
-              <div className="flex items-center gap-2 mb-4 text-gray-400 text-sm uppercase tracking-wider font-semibold">
-                <AlignLeft className="w-4 h-4" />
-                汇报详情 (Details)
+              <div className="flex items-center justify-between mb-3">
+                <div className="flex items-center gap-2 text-gray-400 text-sm uppercase tracking-wider font-semibold">
+                  <AlignLeft className="w-4 h-4" />
+                  汇报详情
+                </div>
+                <button 
+                  onClick={handleCopy}
+                  className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-all ${copied ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'}`}
+                >
+                  {copied ? <Check className="w-3.5 h-3.5" /> : <Copy className="w-3.5 h-3.5" />}
+                  {copied ? '已复制' : '复制文本'}
+                </button>
               </div>
-              <div className="bg-gray-50 p-5 rounded-xl border border-gray-100 text-gray-800 text-base leading-relaxed whitespace-pre-wrap font-mono">
+              
+              <div className="bg-gray-50 p-5 rounded-xl border border-gray-100 text-gray-800 text-base leading-relaxed whitespace-pre-wrap font-mono selection:bg-blue-100 selection:text-blue-900">
                 {selectedReport.content}
               </div>
             </div>
@@ -213,7 +235,7 @@ export const ReportTable: React.FC<ReportTableProps> = ({ reports, onDelete }) =
                 onClick={() => setSelectedReport(null)}
                 className="px-6 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-sm font-medium transition-colors shadow-lg shadow-blue-500/20 active:scale-95"
               >
-                关闭 (Close)
+                关闭
               </button>
             </div>
           </div>
