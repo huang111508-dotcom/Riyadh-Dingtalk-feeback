@@ -1,5 +1,5 @@
 
-const CACHE_NAME = 'dingtalk-parser-v3'; // Bumped to v3 to force update
+const CACHE_NAME = 'dingtalk-parser-v4'; // Bumped to v4 to force update for JSON parsing fix
 const ASSETS_TO_CACHE = [
   '/',
   '/index.html',

@@ -3,13 +3,12 @@ import { ReportItem } from "../types";
 
 export const parseDingTalkLogs = async (rawText: string): Promise<ReportItem[]> => {
   try {
-    // Initialize AI client lazily to avoid top-level runtime errors if env vars aren't ready
-    // We check for process to avoid ReferenceError in non-shimmed environments, 
-    // though Vite usually handles this via define.
-    const apiKey = typeof process !== 'undefined' ? process.env.API_KEY : '';
+    // Access the API key injected by Vite during build.
+    // We use a fallback to empty string to prevent runtime crashes if env var is missing.
+    const apiKey = process.env.API_KEY || '';
     
     if (!apiKey) {
-      throw new Error("API Key is missing. Please check your configuration.");
+      throw new Error("API Key is missing. Please check your Vercel Environment Variables.");
     }
 
     const ai = new GoogleGenAI({ apiKey });
@@ -75,19 +74,34 @@ export const parseDingTalkLogs = async (rawText: string): Promise<ReportItem[]> 
       }
     });
 
-    const text = response.text;
-    if (!text) return [];
+    let text = response.text;
+    if (!text) throw new Error("AI returned empty response.");
 
-    const rawData = JSON.parse(text);
+    // CLEANUP: Remove Markdown code blocks (```json ... ```) which Gemini sometimes adds
+    // even when responseMimeType is set to application/json
+    text = text.replace(/```json/g, '').replace(/```/g, '').trim();
+
+    let rawData;
+    try {
+      rawData = JSON.parse(text);
+    } catch (e) {
+      console.error("JSON Parse Error. Raw Text:", text);
+      throw new Error("Failed to parse AI response. The model output was not valid JSON.");
+    }
     
+    if (!Array.isArray(rawData)) {
+       throw new Error("AI response was not a list of reports.");
+    }
+
     // Add IDs for UI handling
     return rawData.map((item: any) => ({
       ...item,
       id: crypto.randomUUID()
     }));
 
-  } catch (error) {
+  } catch (error: any) {
     console.error("Error parsing logs:", error);
-    throw error;
+    // Throw the specific error message so UI can display it
+    throw new Error(error.message || "Unknown error occurred during parsing.");
   }
 };

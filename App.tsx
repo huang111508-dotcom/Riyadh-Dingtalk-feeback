@@ -178,10 +178,11 @@ const App: React.FC = () => {
         });
       }
       setStatus(ParsingStatus.SUCCESS);
-    } catch (e) {
+    } catch (e: any) {
       console.error(e);
       setStatus(ParsingStatus.ERROR);
-      setErrorMsg("Failed to parse the text. Please check your AI API key or text format.");
+      // Show the actual error message
+      setErrorMsg(e.message || "Failed to parse the text. Please check your AI API key or text format.");
     }
   };
 

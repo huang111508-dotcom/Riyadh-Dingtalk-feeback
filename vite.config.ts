@@ -9,7 +9,8 @@ export default defineConfig(({ mode }) => {
     define: {
       // This is crucial: It replaces process.env.API_KEY in the code 
       // with the actual environment variable value during the build on Vercel.
-      'process.env.API_KEY': JSON.stringify(env.API_KEY)
+      // We default to '' to ensure JSON.stringify doesn't fail on undefined.
+      'process.env.API_KEY': JSON.stringify(env.API_KEY || '')
     }
   };
 });
