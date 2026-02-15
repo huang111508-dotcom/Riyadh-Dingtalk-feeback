@@ -59,18 +59,18 @@ export const ReportTable: React.FC<ReportTableProps> = ({ reports, onDelete }) =
 
   return (
     <>
-      <div className="bg-white rounded-2xl shadow-sm border border-gray-200 overflow-hidden animate-in fade-in slide-in-from-bottom-4 duration-500 overflow-x-auto relative">
+      <div className="bg-white rounded-2xl shadow-sm border border-gray-200 animate-in fade-in slide-in-from-bottom-4 duration-500 overflow-auto relative max-h-[80vh]">
         {/* Scroll hint gradient for right side */}
-        <div className="absolute top-0 right-0 bottom-0 w-4 bg-gradient-to-l from-black/5 to-transparent pointer-events-none z-20 sm:hidden"></div>
+        <div className="absolute top-0 right-0 bottom-0 w-4 bg-gradient-to-l from-black/5 to-transparent pointer-events-none z-40 sm:hidden"></div>
         
         <table className="w-full text-sm text-left border-collapse">
           <thead>
             <tr className="bg-gray-100 text-gray-700 font-bold border-b border-gray-300">
-              <th className="px-3 py-4 w-28 border-r border-gray-200 sticky left-0 bg-gray-100 z-10 text-center shadow-[2px_0_5px_-2px_rgba(0,0,0,0.05)]">
+              <th className="px-3 py-4 w-28 border-r border-gray-200 sticky left-0 top-0 bg-gray-100 z-30 text-center shadow-[2px_0_5px_-2px_rgba(0,0,0,0.05)]">
                 日期
               </th>
               {DEPARTMENTS.map(dept => (
-                <th key={dept} className="px-2 py-4 border-r border-gray-200 text-center min-w-[120px]">
+                <th key={dept} className="px-2 py-4 border-r border-gray-200 text-center min-w-[120px] sticky top-0 bg-gray-100 z-20 shadow-[0_2px_2px_-1px_rgba(0,0,0,0.05)]">
                   {dept}
                 </th>
               ))}
