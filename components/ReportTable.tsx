@@ -96,7 +96,8 @@ export const ReportTable: React.FC<ReportTableProps> = ({ reports, onDelete }) =
                     <td key={`${date}-${dept}`} className="px-2 py-3 border-r border-gray-100 align-top relative group min-w-[120px]">
                       {!hasItems ? (
                         <div className="flex items-center justify-center h-full min-h-[60px]">
-                          <span className="text-gray-200 font-bold text-2xl select-none opacity-50">-</span>
+                          {/* Replaced '-' with large '缺' character */}
+                          <span className="text-gray-200 font-bold text-3xl select-none">缺</span>
                         </div>
                       ) : (
                         <div className="flex flex-col gap-3">

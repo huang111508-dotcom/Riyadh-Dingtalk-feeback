@@ -75,6 +75,17 @@
             .catch(registrationError => {
               console.log('SW registration failed: ', registrationError);
             });
+
+          // FORCE RELOAD ON CONTROLLER CHANGE
+          // This ensures that when a new Service Worker (v3) takes over,
+          // the page automatically refreshes to show the new content.
+          let refreshing = false;
+          navigator.serviceWorker.addEventListener('controllerchange', () => {
+            if (!refreshing) {
+              refreshing = true;
+              window.location.reload();
+            }
+          });
         });
       }
     </script>
